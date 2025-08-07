@@ -36,13 +36,6 @@
         <button id="search-button">Rechercher</button>
     </div>
     <div id="map"></div>
-    
-	<!--<script>
-	  window.addEventListener('load', function() {
-		alert("Déplace le fond de carte, la surface parcourue du feu de Ribaute (11) à la date du 06/08/2025 7h48 (source Copernicus Burnt areas database) restera centrée.");
-	  });
-	</script>
-	-->
 	
 	<div id="welcome-modal" style="
 	 font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;
@@ -65,7 +58,7 @@
 	"
    >
     <h2 style="margin-bottom: 10px;">Bienvenue !</h2>
-    <p style="margin-bottom: 20px;">Déplace le fond de carte, la surface parcourue du feu de Ribaute (Aude) à la date du 06/08/2025 7h48 (source Copernicus Burnt areas database) restera centrée.</p>
+    <p style="margin-bottom: 20px;">Déplace le fond de carte, la surface parcourue du feu de Ribaute (Aude) à la date du 06/08/2025 7h48 (source Copernicus <a href=https://forest-fire.emergency.copernicus.eu/applications/data-and-services>Burnt areas database</a>) restera centrée.</p>
     <button onclick="closeModal()" style="
       padding: 10px 20px;
       background: #007BFF;
@@ -95,7 +88,7 @@
             center: [2.76288858,43.04968014], // Centré sur le feu à sa position d'origine
             zoom: 10,
 			attributionControl: ({
-            compact: true,
+            compact: false,
             customAttribution: [
                 'Fond de carte : © <a href="https://geoservices.ign.fr/planign" target="_blank">IGN - Plan IGN</a>',
                 'Données surface parcourue : <a href="https://forest-fire.emergency.copernicus.eu/applications/data-and-services" target="_blank">Copernicus Burnt areas database</a>'
