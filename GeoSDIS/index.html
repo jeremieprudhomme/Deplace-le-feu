@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Déplace le feu</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--<script src="https://unpkg.com/maplibre-gl@2.1.9/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@2.1.9/dist/maplibre-gl.css" rel="stylesheet" />
+	-->
+	<script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+	<link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
+	
+	<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+	
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+		#search {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+	<div id="search">
+        <input type="text" id="address-input" placeholder="Entrez une adresse">
+        <button id="search-button">Rechercher</button>
+    </div>
+    <div id="map"></div>
+	
+	<div id="welcome-modal" style="
+	 font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;
+	 position: fixed;
+	 top: 0; left: 0; width: 100%; height: 100%;
+	 background: rgba(0, 0, 0, 0.5);
+	 display: flex; align-items: center; justify-content: center;
+	 z-index: 1000;
+	 visibility: hidden;
+	 "
+	>
+   <div style="
+    background: rgba(255, 255, 255, 0.9); /* léger transparent */
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 300px;
+    backdrop-filter: blur(6px); /* flou derrière */
+	"
+   >
+    <h2 style="margin-bottom: 10px;">Bienvenue aux géomaticien·nes en SDIS !</h2>
+    <p style="margin-bottom: 20px;">Déplace le fond de carte, la surface parcourue par le feu du massif des Corbières, Aude (source Matthieu L. - SDMIS) restera centrée.</p>
+    <button onclick="closeModal()" style="
+      padding: 10px 20px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    ">Fermer</button>
+  </div>
+</div>
+
+<script>
+  window.addEventListener('load', function () {
+    document.getElementById('welcome-modal').style.visibility = 'visible';
+  });
+
+  function closeModal() {
+    document.getElementById('welcome-modal').style.visibility = 'hidden';
+  }
+</script>
+	
+	<script>
+        // Initialiser la carte
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/standard.json',
+            center: [2.76288858,43.04968014], // Centré sur le feu à sa position d'origine
+            zoom: 10,
+			attributionControl: ({
+            compact: false,
+            customAttribution: [
+                'Fond de carte : © <a href="https://geoservices.ign.fr/planign" target="_blank">IGN - Plan IGN</a>',
+                'Données surface parcourue : <a href="https://forest-fire.emergency.copernicus.eu/applications/data-and-services" target="_blank">Copernicus Burnt areas database</a>'
+            ]
+        })
+        });
+
+        // Ajouter le contrôle de navigation
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+		
+		// Écouter le clic sur le bouton de recherche
+        document.getElementById('search-button').addEventListener('click', function() {
+            const address = document.getElementById('address-input').value;
+            searchAddress(address);
+        });
+		
+		// Écouter la touche Entrée dans le champ de saisie
+        document.getElementById('address-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                const address = document.getElementById('address-input').value;
+                searchAddress(address);
+            }
+        });
+
+        // Fonction pour rechercher une adresse avec l'API BAN
+        function searchAddress(address) {
+            const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(address)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.features && data.features.length > 0) {
+                        const feature = data.features[0];
+                        const [lng, lat] = feature.geometry.coordinates;
+                        map.setCenter([lng, lat]);
+                        map.setZoom(10);
+                    } else {
+                        alert('Aucun résultat trouvé pour cette adresse.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la recherche de l\'adresse:', error);
+                });
+        }
+
+        // Variable pour stocker les données GeoJSON originales
+        let originalGeoJSONData;
+		let originalGeoJSONData2;
+
+        // Charger le GeoJSON du polygone
+        fetch('https://raw.githubusercontent.com/jeremieprudhomme/Deplace-le-feu/refs/heads/main/GeoSDIS/contour_feu_Aude_simplifie%20WGS84.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP! statut: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                originalGeoJSONData = data;
+                map.on('load', function() {
+                    // Ajouter la source GeoJSON
+                    map.addSource('polygon', {
+                        'type': 'geojson',
+                        'data': originalGeoJSONData
+                    });
+
+                    // Ajouter la couche pour le polygone
+                    map.addLayer({
+                        'id': 'polygon-layer',
+                        'type': 'fill',
+                        'source': 'polygon',
+                        'layout': {},
+                        'paint': {
+                            'fill-color': '#ff2323',
+                            'fill-opacity': 0.2
+                        }
+                    });
+					
+					map.addLayer({
+                        'id': 'polygon-outline',
+                        'type': 'line',
+                        'source': 'polygon',
+                        'layout': {},
+                        'paint': {
+                            'line-color': '#FF0000', // Rouge
+                            'line-width': 1 // Épaisseur de la ligne
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement du GeoJSON:', error);
+            });
+
+		// Charger le GeoJSON du polygone
+        fetch('https://raw.githubusercontent.com/jeremieprudhomme/Deplace-le-feu/refs/heads/main/GeoSDIS/contour_feu_simpl_sans_petit_trou%20WGS84.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP! statut: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                originalGeoJSONData2 = data;
+                map.on('load', function() {
+                    // Ajouter la source GeoJSON
+                    map.addSource('polygon2', {
+                        'type': 'geojson',
+                        'data': originalGeoJSONData2
+                    });
+
+                    // Ajouter la couche pour le polygone
+                    map.addLayer({
+                        'id': 'polygon-layer-2',
+                        'type': 'fill',
+                        'source': 'polygon2',
+                        'layout': {},
+                        'paint': {
+                            'fill-color': '#abaca2', // Gris
+                            'fill-opacity': 0.2
+                        }
+                    });
+					
+					map.addLayer({
+                        'id': 'polygon-outline-2',
+                        'type': 'line',
+                        'source': 'polygon2',
+                        'layout': {},
+                        'paint': {
+                            'line-color': '#62625f', // Gris foncé
+                            'line-width': 1 // Épaisseur de la ligne
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement du GeoJSON:', error);
+            });
+
+        // Fonction pour déplacer le polygone au centre de la carte
+        function movePolygonToCenter() {
+            const center = map.getCenter();
+			
+			// Calculer le centroïde du polygone en utilisant Turf.js
+            const centroid = turf.centroid(originalGeoJSONData);
+			const centroid2 = turf.centroid(originalGeoJSONData2);
+			
+			// Calculer le décalage pour centrer le polygone
+            const offset = {
+                lng: center.lng - centroid.geometry.coordinates[0],
+                lat: center.lat - centroid.geometry.coordinates[1]
+            };
+			
+			const offset2 = {
+                lng: center.lng - centroid2.geometry.coordinates[0],
+                lat: center.lat - centroid2.geometry.coordinates[1]
+            };
+
+            // Mettre à jour les coordonnées du polygone
+            const updatedGeoJSONData = JSON.parse(JSON.stringify(originalGeoJSONData));
+            updatedGeoJSONData.features[0].geometry.coordinates[0].forEach(coord => {
+                coord[0] += offset.lng;
+                coord[1] += offset.lat;
+            });
+			
+			// Mettre à jour les coordonnées du polygone et des trous
+			const updatedGeoJSONData2 = JSON.parse(JSON.stringify(originalGeoJSONData2));
+
+			// Parcourir chaque ensemble de coordonnées (contour extérieur et trous)
+			updatedGeoJSONData2.features[0].geometry.coordinates.forEach(ring => {
+				ring.forEach(coord => {
+					coord[0] += offset.lng;
+					coord[1] += offset.lat;
+				});
+			});
+
+            // Mettre à jour la source de données
+            map.getSource('polygon').setData(updatedGeoJSONData);
+			map.getSource('polygon2').setData(updatedGeoJSONData2);
+        }
+
+        // Écouter les mouvements de la carte
+        map.on('move', movePolygonToCenter);
+    </script>
+</body>
+</html>
