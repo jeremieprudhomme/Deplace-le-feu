@@ -127,9 +127,8 @@ async function loadFire(feature) {
 		month: 'numeric',
 		day: 'numeric'
 	});
-
-	// Mise à jour des attributions
-    updateAttribution(feature.properties.attribution + ' du ' + formattedDate);
+	// Mise à jour des attributions (avec remplacement des \" par un simple "
+    updateAttribution(feature.properties.attribution.replace(/\\"/g, '"') + ' du ' + formattedDate);
 
 }
 
