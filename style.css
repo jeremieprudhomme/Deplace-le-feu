@@ -1,0 +1,64 @@
+body { margin: 0; padding: 0; }
+#map { width: 100%; height: 100vh; }
+#controls {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	z-index: 1;
+	background: white;
+	padding: 10px;
+	border-radius: 5px;
+	box-shadow: 0 0 10px rgba(0,0,0,0.2);
+	width: 300px;
+}
+#controls select, #controls input, #controls button {
+	width: 100%;
+	margin-bottom: 5px;
+	padding: 5px;
+	box-sizing: border-box; /* Inclut le padding dans la largeur */
+	display: block; /* Force le comportement en bloc */
+}
+#welcome-modal {
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;
+	position: fixed;
+	top: 0; left: 0;
+	width: 100%; height: 100%;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	visibility: hidden;
+}
+#modal-content {
+	background: rgba(255, 255, 255, 0.9);
+	padding: 30px;
+	border-radius: 12px;
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+	text-align: center;
+	max-width: 300px;
+	backdrop-filter: blur(6px);
+}
+#modal-content button {
+	padding: 10px 20px;
+	background: #007BFF;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+}
+#address-results div {
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;
+	color: red;
+	padding: 8px 10px;
+	cursor: pointer;
+	border-bottom: 1px solid #eee;
+}
+
+#address-results div.selected{background:#dbeafe;}
+
+#address-results div:hover{background:#f0f0f0;}
+
+#address-results div:last-child {
+	border-bottom: none;
+}
