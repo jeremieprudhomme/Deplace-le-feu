@@ -6,9 +6,9 @@ let allFiresData = null;
 
 async function loadAllFires() {
     const response = await fetch('https://raw.githubusercontent.com/jeremieprudhomme/Deplace-le-feu/refs/heads/main/fires.geojson');
-	console.log(response.status);
+	//console.log(response.status);
     allFiresData = await response.json();
-	console.log(allFiresData);
+	//console.log(allFiresData);
     populateFireSelector();
     //loadFire(allFiresData.features[0]); // Charge le premier feu par défaut
 	// Chargement du feu de Die par défaut
@@ -27,7 +27,7 @@ function populateFireSelector() {
     const selector = document.getElementById('fire-selector');
     selector.innerHTML = '';
     allFiresData.features.forEach((feature, index) => {
-        const { municipality, departement, year } = feature.properties;
+        const { municipality, departement, year, contour_date } = feature.properties;
         const option = document.createElement('option');
         option.value = index;
         option.textContent = `Feu de forêt de ${municipality} (${departement}) - ${year}`;
@@ -86,27 +86,51 @@ async function loadFire(feature) {
 	// Centrage et zoom
     map.fitBounds(turf.bbox(fireGeoJSON) /*Calcule la boîte englobante*/, { padding: 100, maxZoom: 15, duration: 1000 });
 
-    map.once('moveend', () => {
-        // Ajoute les couches
-        map.addSource(activePolygonId, { type: 'geojson', data: fireGeoJSON });
-        map.addLayer({ id: activePolygonId + '-fill', type: 'fill', source: activePolygonId, paint: { 'fill-color': '#ff2323', 'fill-opacity': 0.5 } });
-        map.addLayer({ id: activePolygonId + '-line', type: 'line', source: activePolygonId, paint: { 'line-color': '#FF0000', 'line-width': 2 } });
+	// Attente chargement de la carte au bon zoom
+	await new Promise(resolve => map.once('moveend', resolve));
+	
+	
+	// Ajoute les couches
+	map.addSource(activePolygonId, { type: 'geojson', data: fireGeoJSON });
+	map.addLayer({ id: activePolygonId + '-fill', type: 'fill', source: activePolygonId, paint: { 'fill-color': '#ff2323', 'fill-opacity': 0.5 } });
+	map.addLayer({ id: activePolygonId + '-line', type: 'line', source: activePolygonId, paint: { 'line-color': '#FF0000', 'line-width': 2 } });
 
-        // Label avec la surface
-        /*const surfaceHa = (turf.area(fireGeoJSON) / 10000).toFixed(0);
-        const centroid = turf.centroid(fireGeoJSON);
-        map.addSource(activePolygonId + '-label', { type: 'geojson', data: centroid });
-        map.addLayer({
-            id: activePolygonId + '-label-layer',
-            type: 'symbol',
-            source: activePolygonId + '-label',
-            layout: { 'text-field': surfaceHa + ' ha', 'text-size': 14, 'text-allow-overlap': true },
-            paint: { 'text-color': '#FF0000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 2 }
-        });
-		*/
-    });
+	// Label avec la surface
+	/*const surfaceHa = (turf.area(fireGeoJSON) / 10000).toFixed(0);
+	const centroid = turf.centroid(fireGeoJSON);
+	map.addSource(activePolygonId + '-label', { type: 'geojson', data: centroid });
+	map.addLayer({
+		id: activePolygonId + '-label-layer',
+		type: 'symbol',
+		source: activePolygonId + '-label',
+		layout: { 'text-field': surfaceHa + ' ha', 'text-size': 14, 'text-allow-overlap': true },
+		paint: { 'text-color': '#FF0000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 2 }
+	});*/
+	
+	// ===== OU =====
+	// Label avec la date de contour
+	/*const contourDate = feature.properties.contour_date || 'Date inconnue';
+	const centroid = turf.centroid(fireGeoJSON);
+	map.addSource(activePolygonId + '-label', { type: 'geojson', data: centroid });
+	map.addLayer({
+		id: activePolygonId + '-label-layer',
+		type: 'symbol',
+		source: activePolygonId + '-label',
+		layout: { 'text-field': contourDate, 'text-size': 14, 'text-allow-overlap': true,'text-ignore-placement': true,'text-anchor': 'center' },
+		paint: { 'text-color': '#FF0000', 'text-halo-color': '#FFFFFF', 'text-halo-width': 2 }
+	});
+	*/
 
-    updateAttribution(feature.properties.attribution);
+	// Formatage de la date des données
+	const formattedDate = new Date(feature.properties.contour_date).toLocaleDateString(undefined, {
+		year: 'numeric',
+		month: 'numeric',
+		day: 'numeric'
+	});
+
+	// Mise à jour des attributions
+    updateAttribution(feature.properties.attribution + ' du ' + formattedDate);
+
 }
 
 // Ajout contrôles
@@ -218,8 +242,17 @@ function movePolygonToCenter() {
 			});
 		}
 	});
+	
 	// Mettre à jour la source de données
 	map.getSource(activePolygonId).setData(updatedGeoJSONData);
+	
+	// Déplacer également le label
+	const updatedCentroid = turf.centroid(updatedGeoJSONData);
+
+	const labelSource = map.getSource(activePolygonId + '-label');
+	if (labelSource) {
+		labelSource.setData(updatedCentroid);
+	}
 }
 
 map.on('move', movePolygonToCenter);
