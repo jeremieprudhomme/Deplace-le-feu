@@ -3,6 +3,7 @@ let fireGeoJSON = null;
 let activePolygonId = null;
 let attributionControl = null;
 let allFiresData = null;
+let rotationAngle = 0; // Angle de rotation du contour de feu, en degrés
 
 async function loadAllFires() {
     const response = await fetch('https://raw.githubusercontent.com/jeremieprudhomme/Deplace-le-feu/refs/heads/main/fires.geojson');
@@ -82,7 +83,14 @@ async function loadFire(feature) {
 	// Générer un ID unique
 	activePolygonId = 'fire-' + Date.now();
     fireGeoJSON = { type: 'FeatureCollection', features: [feature] };
-	
+
+	// Réinitialisation de la rotation à chaque changement de feu
+	rotationAngle = 0;
+	const rotationSlider = document.getElementById('rotation-slider');
+	const rotationValue = document.getElementById('rotation-value');
+	if (rotationSlider) rotationSlider.value = 0;
+	if (rotationValue) rotationValue.textContent = '0°';
+
 	// Centrage et zoom
     map.fitBounds(turf.bbox(fireGeoJSON) /*Calcule la boîte englobante*/, { padding: 100, maxZoom: 15, duration: 1000 });
 
@@ -198,23 +206,29 @@ addressInput.addEventListener('keydown',e=>{
 
 document.addEventListener('click',e=>{if(!addressInput.contains(e.target)&&!resultsContainer.contains(e.target))resultsContainer.style.display='none';});
 
-// Déplacement du polygone
+// Déplacement (et rotation) du polygone
+// NB : fireGeoJSON garde toujours la géométrie d'origine (non tournée, non déplacée) du feu
+// sélectionné. À chaque déplacement de carte ou changement d'angle, on repart de cette
+// géométrie de référence pour éviter toute dérive cumulative des coordonnées.
 function movePolygonToCenter() {
 	if (!fireGeoJSON || !activePolygonId) return;
 	if (!map.getSource(activePolygonId)) return;
 
 	const center = map.getCenter();
 	const centroid = turf.centroid(fireGeoJSON);
+
+	// Applique la rotation autour du centroïde d'origine du feu
+	const rotatedGeoJSONData = rotationAngle !== 0
+		? turf.transformRotate(fireGeoJSON, rotationAngle, { pivot: centroid, mutate: false })
+		: JSON.parse(JSON.stringify(fireGeoJSON));
+
 	const offset = {
 		lng: center.lng - centroid.geometry.coordinates[0],
 		lat: center.lat - centroid.geometry.coordinates[1]
 	};
 
-	// Mettre à jour les coordonnées du (multi)polygone
-	const updatedGeoJSONData = JSON.parse(JSON.stringify(fireGeoJSON));
-
 	// Parcourir TOUS les polygones (y compris MultiPolygon)
-	updatedGeoJSONData.features.forEach(feature => {
+	rotatedGeoJSONData.features.forEach(feature => {
 		if (!feature.geometry || !feature.geometry.coordinates) return;
 
 		const coords = feature.geometry.coordinates;
@@ -243,10 +257,10 @@ function movePolygonToCenter() {
 	});
 	
 	// Mettre à jour la source de données
-	map.getSource(activePolygonId).setData(updatedGeoJSONData);
+	map.getSource(activePolygonId).setData(rotatedGeoJSONData);
 	
 	// Déplacer également le label
-	const updatedCentroid = turf.centroid(updatedGeoJSONData);
+	const updatedCentroid = turf.centroid(rotatedGeoJSONData);
 
 	const labelSource = map.getSource(activePolygonId + '-label');
 	if (labelSource) {
@@ -255,3 +269,14 @@ function movePolygonToCenter() {
 }
 
 map.on('move', movePolygonToCenter);
+
+// Écouteur du curseur de rotation
+const rotationSlider = document.getElementById('rotation-slider');
+const rotationValue = document.getElementById('rotation-value');
+if (rotationSlider) {
+	rotationSlider.addEventListener('input', (e) => {
+		rotationAngle = parseFloat(e.target.value);
+		if (rotationValue) rotationValue.textContent = rotationAngle + '°';
+		movePolygonToCenter();
+	});
+}

@@ -18,6 +18,19 @@ body { margin: 0; padding: 0; }
 	box-sizing: border-box; /* Inclut le padding dans la largeur */
 	display: block; /* Force le comportement en bloc */
 }
+#rotation-control {
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;
+	font-size: 13px;
+}
+#rotation-control label {
+	display: block;
+	margin-bottom: 3px;
+}
+#rotation-control input[type="range"] {
+	width: 100%;
+	padding: 0;
+	margin-bottom: 5px;
+}
 #welcome-modal {
 	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;
 	position: fixed;
