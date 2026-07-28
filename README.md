@@ -4,7 +4,8 @@ Carte permettant de déplacer le contour du <a href=https://fr.wikipedia.org/wik
 La surface provient de la base de données Copernicus <a href=https://forest-fire.emergency.copernicus.eu/applications/data-and-services>Burnt areas database</a>).
 
 # Mise à jour 2026
-Ajout d'un menu permettant de choisir entre plusieurs feux, dont celui de Die (Drôme), Trévillach (Pyrénées-Orientales) et Fontainebleau (Seine-et-Marne).
+Ajout d'un menu permettant de choisir entre plusieurs feux, dont celui de Die (Drôme), Trévillach (Pyrénées-Orientales), Fontainebleau (Seine-et-Marne) et Le Porge (Gironde).
+Ajout d'un curseur de rotation du feu.
 
 # Voir en ligne
 La carte est accessible à cette adresse : https://jeremieprudhomme.github.io/Deplace-le-feu/

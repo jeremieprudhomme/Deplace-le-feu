@@ -18,7 +18,10 @@
         </select>
         <input type="text" id="address-input" placeholder="Entrez une adresse à rejoindre" autocomplete="off">
 		<div id="address-results" style="display: none; position: absolute; left: 0; right: 0; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
-        
+		<div id="rotation-control">
+			<label for="rotation-slider">Rotation du contour : <span id="rotation-value">0°</span></label>
+			<input type="range" id="rotation-slider" min="0" max="359" step="1" value="0">
+		</div>
     </div>
     <div id="map"></div>
     <div id="welcome-modal">
